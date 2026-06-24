@@ -1,0 +1,372 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #141414; min-height: 100vh; padding: 1.5rem; }
+  .app { background: #141414; min-height: 100vh; color: #fff; max-width: 640px; margin: 0 auto; }
+  .balance-area { text-align: center; padding: 1.5rem 0 2rem; }
+  .balance-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #555; margin-bottom: 0.5rem; }
+  .balance-num { font-size: 68px; font-weight: 500; line-height: 1; transition: color 0.3s, transform 0.15s; font-variant-numeric: tabular-nums; }
+  .balance-num.pos { color: #4ade80; }
+  .balance-num.neg { color: #f87171; }
+  .balance-num.zero { color: #555; }
+  .balance-num.bump { transform: scale(1.05); }
+  .tabs { display: flex; gap: 6px; margin-bottom: 1.25rem; background: #1c1c1c; border-radius: 12px; padding: 4px; border: 0.5px solid #2a2a2a; }
+  .tab { flex: 1; padding: 8px 0; border-radius: 9px; border: none; background: transparent; color: #666; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s, color 0.15s; }
+  .tab.active { background: #2a2a2a; color: #fff; }
+  .tab:hover:not(.active) { color: #aaa; }
+  .btn-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .quick-btn { flex: 1; padding: 10px 0; border-radius: 10px; border: 0.5px solid #2a2a2a; background: #1c1c1c; color: #ccc; font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.15s, color 0.15s, transform 0.1s; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .quick-btn:active { transform: scale(0.95); }
+  .quick-btn.minus { color: #f87171; border-color: #3a2222; }
+  .quick-btn.minus:hover { background: #2a1a1a; }
+  .quick-btn.plus { color: #4ade80; border-color: #1a3a22; }
+  .quick-btn.plus:hover { background: #1a2a1a; }
+  .center-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .amount-input { flex: 1; padding: 10px 14px; background: #1c1c1c; border: 0.5px solid #333; border-radius: 10px; color: #fff; font-size: 16px; text-align: center; outline: none; }
+  .amount-input:focus { border-color: #555; }
+  .amount-input::placeholder { color: #444; }
+  .action-row { display: flex; gap: 6px; margin-bottom: 1.25rem; margin-top: 2px; }
+  .act-btn { flex: 1; padding: 10px 0; border-radius: 10px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s, transform 0.1s; border: 0.5px solid; }
+  .act-btn:active { transform: scale(0.96); }
+  .act-sub { background: #2d1e1e; border-color: #4a2a2a; color: #f87171; }
+  .act-sub:hover { background: #332424; }
+  .act-add { background: #1e2d1e; border-color: #2a4a2a; color: #4ade80; }
+  .act-add:hover { background: #243324; }
+  .act-day { background: #1e1e2d; border-color: #2a2a4a; color: #818cf8; }
+  .act-day:hover { background: #242433; }
+  .act-edit { background: #1c1c1c; border-color: #2a2a2a; color: #666; flex: 0 0 44px; font-size: 16px; }
+  .act-edit:hover { background: #242424; color: #aaa; }
+  .divider { height: 0.5px; background: #222; margin: 0.25rem 0 1.25rem; }
+  .section-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #444; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
+  .clear-btn { font-size: 11px; color: #444; background: none; border: none; cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+  .clear-btn:hover { color: #888; background: #222; }
+  .day-block { margin-bottom: 8px; }
+  .day-header { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; background: #1e1e2d; border-radius: 9px; border: 0.5px solid #2a2a3a; cursor: pointer; }
+  .day-header:hover { background: #24243a; }
+  .day-name { font-size: 12px; color: #818cf8; }
+  .day-total { font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .day-total.pos { color: #4ade80; }
+  .day-total.neg { color: #f87171; }
+  .day-total.zero { color: #555; }
+  .day-entries { display: none; flex-direction: column; gap: 4px; margin-top: 4px; padding-left: 8px; }
+  .day-entries.open { display: flex; }
+  .entry { display: flex; justify-content: space-between; padding: 7px 12px; background: #1a1a1a; border-radius: 8px; border: 0.5px solid #242424; animation: fi 0.2s ease; }
+  @keyframes fi { from { opacity:0; transform:translateY(-3px); } to { opacity:1; transform:translateY(0); } }
+  .entry-time { font-size: 11px; color: #444; }
+  .entry-amt { font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .entry-amt.pos { color: #4ade80; }
+  .entry-amt.neg { color: #f87171; }
+  .empty { text-align: center; padding: 2rem; color: #333; font-size: 13px; }
+  .chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 72px; margin-bottom: 1.25rem; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .bar-outer { width: 100%; height: 60px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 3px; }
+  .bar-lbl { font-size: 9px; color: #444; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.25rem; }
+  .stat-card { background: #1c1c1c; border-radius: 10px; border: 0.5px solid #2a2a2a; padding: 12px 14px; }
+  .stat-label { font-size: 11px; color: #555; margin-bottom: 4px; }
+  .stat-val { font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .stat-val.pos { color: #4ade80; }
+  .stat-val.neg { color: #f87171; }
+  .stat-val.zero { color: #666; }
+  .range-row { display: flex; gap: 8px; margin-bottom: 1rem; }
+  .date-input { flex: 1; padding: 8px 10px; background: #1c1c1c; border: 0.5px solid #333; border-radius: 9px; color: #ccc; font-size: 13px; outline: none; }
+  .date-input:focus { border-color: #555; }
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; padding: 1.5rem; z-index: 10; }
+  .editor { background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 16px; padding: 1.25rem; width: 100%; max-width: 520px; max-height: 80vh; overflow-y: auto; }
+  .editor-title { font-size: 14px; font-weight: 500; margin-bottom: 1rem; color: #ccc; display: flex; justify-content: space-between; align-items: center; }
+  .editor-close { background: none; border: none; color: #555; font-size: 22px; cursor: pointer; line-height: 1; }
+  .editor-close:hover { color: #ccc; }
+  .editor-section { margin-bottom: 1rem; }
+  .editor-section-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+  .editor-section-label.minus { color: #f87171; }
+  .editor-section-label.plus { color: #4ade80; }
+  .preset-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .preset-label-input { flex: 2; padding: 8px 10px; background: #111; border: 0.5px solid #333; border-radius: 8px; color: #fff; font-size: 13px; outline: none; }
+  .preset-label-input:focus { border-color: #555; }
+  .preset-val-input { flex: 1; padding: 8px 10px; background: #111; border: 0.5px solid #333; border-radius: 8px; color: #fff; font-size: 13px; outline: none; text-align: right; }
+  .preset-val-input:focus { border-color: #555; }
+  .preset-del { background: none; border: none; color: #444; font-size: 20px; cursor: pointer; padding: 0 4px; line-height: 1; }
+  .preset-del:hover { color: #f87171; }
+  .add-preset-btn { padding: 7px 12px; background: #222; border: 0.5px solid #333; border-radius: 8px; color: #666; font-size: 12px; cursor: pointer; width: 100%; margin-top: 2px; }
+  .add-preset-btn:hover { background: #2a2a2a; color: #aaa; }
+  .save-presets-btn { width: 100%; padding: 10px; background: #1e2d1e; border: 0.5px solid #2a4a2a; border-radius: 10px; color: #4ade80; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 12px; }
+  .save-presets-btn:hover { background: #243324; }
+</style>
+
+<div class="app">
+  <div class="balance-area">
+    <div class="balance-label" id="view-label">today</div>
+    <div class="balance-num zero" id="bal">$0</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('today')">Today</button>
+    <button class="tab" onclick="switchTab('custom')">Custom range</button>
+    <button class="tab" onclick="switchTab('all')">All time</button>
+  </div>
+
+  <div id="input-section">
+    <div class="btn-row" id="plus-row"></div>
+    <div class="center-row">
+      <input class="amount-input" type="number" id="amt" placeholder="0" step="any" />
+    </div>
+    <div class="btn-row" id="minus-row"></div>
+    <div class="action-row">
+      <button class="act-btn act-add" onclick="addCustom(1)">+ add</button>
+      <button class="act-btn act-sub" onclick="addCustom(-1)">− subtract</button>
+      <button class="act-btn act-day" onclick="closeDay()">close day</button>
+      <button class="act-btn act-edit" onclick="openEditor()">⚙</button>
+    </div>
+  </div>
+
+  <div id="range-section" style="display:none;">
+    <div class="range-row">
+      <input class="date-input" type="date" id="from-date" oninput="renderAll()" />
+      <input class="date-input" type="date" id="to-date" oninput="renderAll()" />
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div id="chart-wrap" style="display:none;"><div class="chart-bars" id="chart-bars"></div></div>
+  <div class="stat-grid" id="stat-grid"></div>
+  <div class="section-label"><span>history</span><button class="clear-btn" onclick="clearAll()">clear all</button></div>
+  <div id="entries"></div>
+</div>
+
+<div class="overlay" id="overlay" style="display:none;" onclick="if(event.target===this)closeEditor()">
+  <div class="editor">
+    <div class="editor-title">
+      <span>Edit quick buttons</span>
+      <button class="editor-close" onclick="closeEditor()">×</button>
+    </div>
+    <div class="editor-section">
+      <div class="editor-section-label plus">add buttons (groen)</div>
+      <div id="plus-editor"></div>
+      <button class="add-preset-btn" onclick="addPresetRow('plus')">+ add button</button>
+    </div>
+    <div class="editor-section" style="margin-top:1rem;">
+      <div class="editor-section-label minus">subtract buttons (rood)</div>
+      <div id="minus-editor"></div>
+      <button class="add-preset-btn" onclick="addPresetRow('minus')">+ add button</button>
+    </div>
+    <button class="save-presets-btn" onclick="savePresets()">save</button>
+  </div>
+</div>
+
+<script>
+const STORE_KEY = 'moneytracker_v5';
+let currentTab = 'today';
+
+const DEFAULT_PLUS  = [{label:'+1',value:1},{label:'+10',value:10},{label:'+100',value:100}];
+const DEFAULT_MINUS = [{label:'−1',value:1},{label:'−10',value:10},{label:'−100',value:100}];
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(STORE_KEY));
+    if (!d) return defaultState();
+    if (!d.presetsPlus)  d.presetsPlus  = DEFAULT_PLUS;
+    if (!d.presetsMinus) d.presetsMinus = DEFAULT_MINUS;
+    return d;
+  } catch(e) { return defaultState(); }
+}
+function defaultState() {
+  return { days:[], current:{ date:todayStr(), transactions:[] }, presetsPlus:DEFAULT_PLUS, presetsMinus:DEFAULT_MINUS };
+}
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e){} }
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function dateStr(d) { return d.toISOString().split('T')[0]; }
+function fmtDate(s) { return new Date(s+'T00:00:00').toLocaleDateString('nl-BE',{day:'2-digit',month:'short'}); }
+function fmt(n) {
+  const abs = Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  return (n<0?'-':'')+'$'+abs;
+}
+function cls(n) { return n>0?'pos':n<0?'neg':'zero'; }
+function dayTotal(d) { return Math.round(d.transactions.reduce((s,t)=>s+t.amount,0)*100)/100; }
+
+let state = load();
+
+function renderQuickBtns() {
+  document.getElementById('plus-row').innerHTML = state.presetsPlus.map(p=>
+    `<button class="quick-btn plus" onclick="adjust(${p.value})">${p.label}</button>`
+  ).join('');
+  document.getElementById('minus-row').innerHTML = state.presetsMinus.map(p=>
+    `<button class="quick-btn minus" onclick="adjust(-${p.value})">${p.label}</button>`
+  ).join('');
+}
+
+function allDaysList() {
+  const list = [];
+  if (state.current.transactions.length>0) list.push({...state.current, isToday:true});
+  state.days.forEach(d=>list.push({...d,isToday:false}));
+  return list;
+}
+function filteredDays() {
+  const all = allDaysList();
+  if (currentTab==='today') return all.filter(d=>d.date===todayStr());
+  if (currentTab==='all') return all;
+  const from = document.getElementById('from-date')?.value;
+  const to   = document.getElementById('to-date')?.value;
+  return all.filter(d=>(!from||d.date>=from)&&(!to||d.date<=to));
+}
+function totalOf(days) { return Math.round(days.reduce((s,d)=>s+dayTotal(d),0)*100)/100; }
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['today','custom','all'][i]===tab));
+  document.getElementById('input-section').style.display = tab==='today'?'':'none';
+  document.getElementById('range-section').style.display = tab==='custom'?'':'none';
+  if (tab==='custom') {
+    document.getElementById('to-date').value = todayStr();
+    document.getElementById('from-date').value = dateStr(new Date(Date.now()-6*86400000));
+  }
+  renderAll();
+}
+
+function updateBalance() {
+  const total = totalOf(filteredDays());
+  const el = document.getElementById('bal');
+  el.textContent = fmt(total);
+  el.className = 'balance-num '+cls(total);
+  el.classList.add('bump');
+  setTimeout(()=>el.classList.remove('bump'),150);
+  document.getElementById('view-label').textContent = {today:'today',custom:'custom range',all:'all time'}[currentTab];
+}
+
+function adjust(amount) {
+  if (currentTab!=='today') return;
+  const now = new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
+  state.current.transactions.unshift({amount,time:now});
+  updateAll();
+}
+
+function addCustom(sign) {
+  if (currentTab!=='today') return;
+  const raw = parseFloat(document.getElementById('amt').value);
+  if (isNaN(raw)||raw===0) return;
+  const amount = Math.round(Math.abs(raw)*100)/100*sign;
+  document.getElementById('amt').value = '';
+  const now = new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
+  state.current.transactions.unshift({amount,time:now});
+  updateAll();
+}
+
+function closeDay() {
+  if (state.current.transactions.length===0) return;
+  state.days.unshift({date:state.current.date,transactions:state.current.transactions});
+  state.current = {date:todayStr(),transactions:[]};
+  updateAll();
+}
+
+function clearAll() {
+  if (!confirm('Alles wissen?')) return;
+  state = defaultState();
+  renderQuickBtns();
+  renderAll();
+}
+
+function updateAll() { save(); renderAll(); }
+
+function renderAll() {
+  updateBalance();
+  renderStats();
+  renderChart();
+  renderEntries();
+}
+
+function renderStats() {
+  const days = filteredDays();
+  if (!days.length) { document.getElementById('stat-grid').innerHTML=''; return; }
+  const totals = days.map(dayTotal);
+  const best = Math.max(...totals), worst = Math.min(...totals);
+  const avg = Math.round(totals.reduce((a,b)=>a+b,0)/totals.length*100)/100;
+  const txCount = days.reduce((s,d)=>s+d.transactions.length,0);
+  document.getElementById('stat-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-label">best day</div><div class="stat-val ${cls(best)}">${fmt(best)}</div></div>
+    <div class="stat-card"><div class="stat-label">worst day</div><div class="stat-val ${cls(worst)}">${fmt(worst)}</div></div>
+    <div class="stat-card"><div class="stat-label">avg / day</div><div class="stat-val ${cls(avg)}">${fmt(avg)}</div></div>
+    <div class="stat-card"><div class="stat-label">transactions</div><div class="stat-val zero">${txCount}</div></div>`;
+}
+
+function renderChart() {
+  const days = filteredDays();
+  const wrap = document.getElementById('chart-wrap');
+  const visible = days.slice().reverse().slice(-10);
+  if (visible.length<2) { wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  const maxAbs = Math.max(...visible.map(d=>Math.abs(dayTotal(d))),1);
+  document.getElementById('chart-bars').innerHTML = visible.map(d=>{
+    const t=dayTotal(d), pct=Math.round(Math.abs(t)/maxAbs*100);
+    return `<div class="bar-col"><div class="bar-outer"><div class="bar" style="height:${pct}%;background:${t>=0?'#4ade80':'#f87171'};"></div></div><div class="bar-lbl">${fmtDate(d.date)}</div></div>`;
+  }).join('');
+}
+
+function renderEntries() {
+  const days = filteredDays();
+  const container = document.getElementById('entries');
+  if (!days.length) { container.innerHTML='<div class="empty">geen transacties</div>'; return; }
+  container.innerHTML = days.map(d=>{
+    const t=dayTotal(d), isToday=d.date===todayStr();
+    return `<div class="day-block">
+      <div class="day-header" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="day-name">${isToday?'vandaag · ':'' }${fmtDate(d.date)}</span>
+        <span class="day-total ${cls(t)}">${fmt(t)}</span>
+      </div>
+      <div class="day-entries ${isToday?'open':''}">
+        ${d.transactions.map(tx=>`<div class="entry"><span class="entry-time">${tx.time}</span><span class="entry-amt ${cls(tx.amount)}">${tx.amount>=0?'+':''}${fmt(tx.amount)}</span></div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openEditor() {
+  renderEditorRows('plus');
+  renderEditorRows('minus');
+  document.getElementById('overlay').style.display='flex';
+}
+function closeEditor() { document.getElementById('overlay').style.display='none'; }
+
+function renderEditorRows(type) {
+  const presets = type==='plus' ? state.presetsPlus : state.presetsMinus;
+  document.getElementById(type+'-editor').innerHTML = presets.map((p,i)=>`
+    <div class="preset-row">
+      <input class="preset-label-input" placeholder="label" value="${p.label||''}" id="${type}-lbl-${i}" />
+      <input class="preset-val-input" type="number" placeholder="bedrag" value="${p.value||''}" min="0" step="any" id="${type}-val-${i}" />
+      <button class="preset-del" onclick="deletePresetRow('${type}',${i})">×</button>
+    </div>`).join('');
+}
+
+function addPresetRow(type) {
+  const presets = type==='plus' ? state.presetsPlus : state.presetsMinus;
+  presets.push({label:'',value:0});
+  renderEditorRows(type);
+}
+
+function deletePresetRow(type,i) {
+  const presets = type==='plus' ? state.presetsPlus : state.presetsMinus;
+  presets.splice(i,1);
+  renderEditorRows(type);
+}
+
+function savePresets() {
+  ['plus','minus'].forEach(type=>{
+    const presets = state[type==='plus'?'presetsPlus':'presetsMinus'];
+    const count = document.querySelectorAll(`#${type}-editor .preset-row`).length;
+    const result = [];
+    for (let i=0;i<count;i++) {
+      const lbl = document.getElementById(`${type}-lbl-${i}`)?.value.trim();
+      const val = parseFloat(document.getElementById(`${type}-val-${i}`)?.value);
+      if (!isNaN(val)&&val>0) result.push({label:lbl||(type==='plus'?'+':'-')+val, value:val});
+    }
+    if (type==='plus') state.presetsPlus = result.length?result:DEFAULT_PLUS;
+    else state.presetsMinus = result.length?result:DEFAULT_MINUS;
+  });
+  save();
+  renderQuickBtns();
+  closeEditor();
+}
+
+document.getElementById('amt').addEventListener('keydown',e=>{ if(e.key==='Enter') addCustom(1); });
+renderQuickBtns();
+renderAll();
+</script>
