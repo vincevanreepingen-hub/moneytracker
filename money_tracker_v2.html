@@ -1,0 +1,227 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  .tracker { background: #141414; border-radius: 20px; padding: 2rem 1.5rem; max-width: 640px; margin: 0 auto; border: 0.5px solid #2a2a2a; }
+  .balance-area { text-align: center; margin: 1.5rem 0 2rem; }
+  .balance-label { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #555; margin-bottom: 0.5rem; }
+  .balance-num { font-size: 72px; font-weight: 500; line-height: 1; transition: color 0.3s, transform 0.15s; font-variant-numeric: tabular-nums; }
+  .balance-num.pos { color: #4ade80; }
+  .balance-num.neg { color: #f87171; }
+  .balance-num.zero { color: #555; }
+  .balance-num.bump { transform: scale(1.06); }
+  .controls { display: flex; align-items: center; gap: 8px; }
+  .quick-btn { flex: 1; padding: 10px 0; border-radius: 10px; border: 0.5px solid #2a2a2a; background: #1c1c1c; color: #ccc; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s, color 0.15s, transform 0.1s; }
+  .quick-btn:hover { background: #252525; color: #fff; }
+  .quick-btn:active { transform: scale(0.96); }
+  .quick-btn.minus { color: #f87171; border-color: #3a2222; }
+  .quick-btn.minus:hover { background: #2a1a1a; color: #fca5a5; }
+  .quick-btn.plus { color: #4ade80; border-color: #1a3a22; }
+  .quick-btn.plus:hover { background: #1a2a1a; color: #86efac; }
+  .input-wrap { position: relative; flex: 2; }
+  .amount-input { width: 100%; padding: 10px 14px; background: #1c1c1c; border: 0.5px solid #333; border-radius: 10px; color: #fff; font-size: 16px; text-align: center; outline: none; transition: border-color 0.2s; }
+  .amount-input:focus { border-color: #555; }
+  .amount-input::placeholder { color: #444; }
+  .action-row { display: flex; gap: 8px; margin-top: 8px; }
+  .add-btn { flex: 1; padding: 10px 0; border-radius: 10px; background: #1e2d1e; border: 0.5px solid #2a4a2a; color: #4ade80; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s, transform 0.1s; }
+  .add-btn:hover { background: #243324; }
+  .add-btn:active { transform: scale(0.96); }
+  .add-btn.sub { background: #2d1e1e; border-color: #4a2a2a; color: #f87171; }
+  .add-btn.sub:hover { background: #332424; }
+  .close-day-btn { flex: 1.5; padding: 10px 0; border-radius: 10px; background: #1e1e2d; border: 0.5px solid #2a2a4a; color: #818cf8; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s, transform 0.1s; }
+  .close-day-btn:hover { background: #242433; }
+  .close-day-btn:active { transform: scale(0.96); }
+  .history { margin-top: 1.5rem; }
+  .hist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+  .hist-title { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #444; }
+  .clear-btn { font-size: 11px; color: #444; background: none; border: none; cursor: pointer; padding: 2px 6px; border-radius: 6px; transition: color 0.15s, background 0.15s; }
+  .clear-btn:hover { color: #888; background: #222; }
+  .day-block { margin-bottom: 10px; }
+  .day-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #1e1e2d; border-radius: 8px; border: 0.5px solid #2a2a3a; cursor: pointer; user-select: none; }
+  .day-header:hover { background: #242435; }
+  .day-name { font-size: 12px; color: #818cf8; letter-spacing: 0.06em; }
+  .day-total { font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .day-total.pos { color: #4ade80; }
+  .day-total.neg { color: #f87171; }
+  .day-total.zero { color: #555; }
+  .day-entries { display: none; flex-direction: column; gap: 4px; margin-top: 4px; padding-left: 8px; }
+  .day-entries.open { display: flex; }
+  .entry { display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; background: #1a1a1a; border-radius: 8px; border: 0.5px solid #242424; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+  .entry-time { font-size: 11px; color: #444; }
+  .entry-amount { font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .entry-amount.pos { color: #4ade80; }
+  .entry-amount.neg { color: #f87171; }
+  .empty-state { text-align: center; padding: 1.5rem; color: #333; font-size: 13px; }
+  .chart-wrap { margin: 1.25rem 0 0; }
+  .chart-title { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #444; margin-bottom: 6px; }
+  .chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 60px; }
+  .chart-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .bar-outer { width: 100%; display: flex; flex-direction: column; justify-content: flex-end; height: 52px; }
+  .bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 3px; transition: height 0.3s; }
+  .bar-label { font-size: 9px; color: #444; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;">Money tracker with daily history, local storage, and bar chart</h2>
+
+<div class="tracker">
+  <div class="balance-area">
+    <div class="balance-label" id="day-label">today</div>
+    <div class="balance-num zero" id="bal">$0</div>
+  </div>
+
+  <div class="controls">
+    <button class="quick-btn minus" onclick="adjust(-100)">−100</button>
+    <button class="quick-btn minus" onclick="adjust(-10)">−10</button>
+    <button class="quick-btn minus" onclick="adjust(-1)">−1</button>
+    <div class="input-wrap">
+      <input class="amount-input" type="number" id="amt" placeholder="0" step="any" />
+    </div>
+    <button class="quick-btn plus" onclick="adjust(1)">+1</button>
+    <button class="quick-btn plus" onclick="adjust(10)">+10</button>
+    <button class="quick-btn plus" onclick="adjust(100)">+100</button>
+  </div>
+
+  <div class="action-row">
+    <button class="add-btn sub" onclick="addCustom(-1)">− subtract</button>
+    <button class="add-btn" onclick="addCustom(1)">+ add</button>
+    <button class="close-day-btn" onclick="closeDay()">⬛ close day</button>
+  </div>
+
+  <div class="chart-wrap" id="chart-wrap" style="display:none;">
+    <div class="chart-title">per day</div>
+    <div class="chart-bars" id="chart-bars"></div>
+  </div>
+
+  <div class="history">
+    <div class="hist-header">
+      <span class="hist-title">history</span>
+      <button class="clear-btn" onclick="clearAll()">clear all</button>
+    </div>
+    <div id="entries"></div>
+  </div>
+</div>
+
+<script>
+const STORE_KEY = 'moneytracker_v2';
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || { days: [], current: { date: todayStr(), transactions: [] } }; }
+  catch(e) { return { days: [], current: { date: todayStr(), transactions: [] } }; }
+}
+
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e) {} }
+
+function todayStr() {
+  return new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function shortDate(s) { return s.split(' ').slice(0,2).join(' '); }
+
+function fmt(n) {
+  const abs = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n < 0 ? '-' : '') + '$' + abs;
+}
+
+function dayTotal(day) {
+  return Math.round(day.transactions.reduce((s, t) => s + t.amount, 0) * 100) / 100;
+}
+
+function currentBalance() {
+  return Math.round(state.current.transactions.reduce((s, t) => s + t.amount, 0) * 100) / 100;
+}
+
+let state = load();
+
+function updateDisplay() {
+  const bal = currentBalance();
+  const el = document.getElementById('bal');
+  el.textContent = fmt(bal);
+  el.className = 'balance-num ' + (bal > 0 ? 'pos' : bal < 0 ? 'neg' : 'zero');
+  el.classList.add('bump');
+  setTimeout(() => el.classList.remove('bump'), 150);
+  document.getElementById('day-label').textContent = state.current.date === todayStr() ? 'today' : state.current.date;
+  renderAll();
+  save();
+}
+
+function adjust(amount) {
+  const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  state.current.transactions.unshift({ amount, time: now });
+  updateDisplay();
+}
+
+function addCustom(sign) {
+  const raw = parseFloat(document.getElementById('amt').value);
+  if (isNaN(raw) || raw === 0) return;
+  const amount = Math.round(Math.abs(raw) * 100) / 100 * sign;
+  document.getElementById('amt').value = '';
+  const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  state.current.transactions.unshift({ amount, time: now });
+  updateDisplay();
+}
+
+function closeDay() {
+  if (state.current.transactions.length === 0) return;
+  state.days.unshift({ date: state.current.date, transactions: state.current.transactions });
+  state.current = { date: todayStr(), transactions: [] };
+  updateDisplay();
+}
+
+function clearAll() {
+  state = { days: [], current: { date: todayStr(), transactions: [] } };
+  updateDisplay();
+}
+
+function renderAll() {
+  renderEntries();
+  renderChart();
+}
+
+function renderEntries() {
+  const container = document.getElementById('entries');
+  let html = '';
+
+  if (state.current.transactions.length > 0) {
+    const total = currentBalance();
+    const cls = total > 0 ? 'pos' : total < 0 ? 'neg' : 'zero';
+    html += `<div class="day-block"><div class="day-header" onclick="toggleDay(this)"><span class="day-name">today · ${state.current.date}</span><span class="day-total ${cls}">${fmt(total)}</span></div><div class="day-entries open">${state.current.transactions.map(t => `<div class="entry"><span class="entry-time">${t.time}</span><span class="entry-amount ${t.amount >= 0 ? 'pos' : 'neg'}">${t.amount >= 0 ? '+' : ''}${fmt(t.amount)}</span></div>`).join('')}</div></div>`;
+  }
+
+  state.days.forEach((day, i) => {
+    const total = dayTotal(day);
+    const cls = total > 0 ? 'pos' : total < 0 ? 'neg' : 'zero';
+    html += `<div class="day-block"><div class="day-header" onclick="toggleDay(this)"><span class="day-name">${day.date}</span><span class="day-total ${cls}">${fmt(total)}</span></div><div class="day-entries">${day.transactions.map(t => `<div class="entry"><span class="entry-time">${t.time}</span><span class="entry-amount ${t.amount >= 0 ? 'pos' : 'neg'}">${t.amount >= 0 ? '+' : ''}${fmt(t.amount)}</span></div>`).join('')}</div></div>`;
+  });
+
+  if (!html) html = '<div class="empty-state">no transactions yet</div>';
+  container.innerHTML = html;
+}
+
+function toggleDay(header) {
+  const entries = header.nextElementSibling;
+  entries.classList.toggle('open');
+}
+
+function renderChart() {
+  const allDays = [];
+  if (state.current.transactions.length > 0) allDays.push({ date: shortDate(state.current.date), total: currentBalance() });
+  state.days.forEach(d => allDays.push({ date: shortDate(d.date), total: dayTotal(d) }));
+
+  const wrap = document.getElementById('chart-wrap');
+  if (allDays.length < 2) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+
+  const visible = allDays.slice(0, 10).reverse();
+  const maxAbs = Math.max(...visible.map(d => Math.abs(d.total)), 1);
+
+  document.getElementById('chart-bars').innerHTML = visible.map(d => {
+    const pct = Math.round((Math.abs(d.total) / maxAbs) * 100);
+    const color = d.total >= 0 ? '#4ade80' : '#f87171';
+    return `<div class="chart-bar-col"><div class="bar-outer"><div class="bar" style="height:${pct}%;background:${color};"></div></div><div class="bar-label">${d.date}</div></div>`;
+  }).join('');
+}
+
+document.getElementById('amt').addEventListener('keydown', e => { if (e.key === 'Enter') addCustom(1); });
+
+updateDisplay();
+</script>
