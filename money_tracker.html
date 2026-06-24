@@ -1,0 +1,184 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: transparent; }
+  .tracker { background: #141414; border-radius: 20px; padding: 2rem 1.5rem; max-width: 640px; margin: 0 auto; border: 0.5px solid #2a2a2a; }
+  .balance-area { text-align: center; margin: 1.5rem 0 2rem; }
+  .balance-label { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #555; margin-bottom: 0.5rem; }
+  .balance-num { font-size: 72px; font-weight: 500; line-height: 1; transition: color 0.3s, transform 0.15s; font-variant-numeric: tabular-nums; }
+  .balance-num.pos { color: #4ade80; }
+  .balance-num.neg { color: #f87171; }
+  .balance-num.zero { color: #555; }
+  .balance-num.bump { transform: scale(1.06); }
+  .controls { display: flex; align-items: center; gap: 8px; }
+  .quick-btn { flex: 1; padding: 10px 0; border-radius: 10px; border: 0.5px solid #2a2a2a; background: #1c1c1c; color: #ccc; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s, color 0.15s, transform 0.1s; }
+  .quick-btn:hover { background: #252525; color: #fff; }
+  .quick-btn:active { transform: scale(0.96); }
+  .quick-btn.minus { color: #f87171; border-color: #3a2222; }
+  .quick-btn.minus:hover { background: #2a1a1a; color: #fca5a5; }
+  .quick-btn.plus { color: #4ade80; border-color: #1a3a22; }
+  .quick-btn.plus:hover { background: #1a2a1a; color: #86efac; }
+  .input-wrap { position: relative; flex: 2; }
+  .amount-input { width: 100%; padding: 10px 14px; background: #1c1c1c; border: 0.5px solid #333; border-radius: 10px; color: #fff; font-size: 16px; text-align: center; outline: none; transition: border-color 0.2s; }
+  .amount-input:focus { border-color: #555; }
+  .amount-input::placeholder { color: #444; }
+  .add-btn { flex: 1.5; padding: 10px 0; border-radius: 10px; background: #1e2d1e; border: 0.5px solid #2a4a2a; color: #4ade80; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s, transform 0.1s; }
+  .add-btn:hover { background: #243324; }
+  .add-btn:active { transform: scale(0.96); }
+  .history { margin-top: 1.5rem; }
+  .hist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+  .hist-title { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #444; }
+  .clear-btn { font-size: 11px; color: #444; background: none; border: none; cursor: pointer; padding: 2px 6px; border-radius: 6px; transition: color 0.15s, background 0.15s; }
+  .clear-btn:hover { color: #888; background: #222; }
+  .entries { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; }
+  .entries::-webkit-scrollbar { width: 4px; }
+  .entries::-webkit-scrollbar-track { background: transparent; }
+  .entries::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+  .entry { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #1a1a1a; border-radius: 8px; border: 0.5px solid #242424; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+  .entry-time { font-size: 11px; color: #444; }
+  .entry-amount { font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .entry-amount.pos { color: #4ade80; }
+  .entry-amount.neg { color: #f87171; }
+  .empty-state { text-align: center; padding: 1.5rem; color: #333; font-size: 13px; }
+  .sparkline { margin: 1.25rem 0 0; }
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;">Money tracker — shows current balance with quick add/subtract buttons and transaction history</h2>
+
+<div class="tracker">
+  <div class="balance-area">
+    <div class="balance-label">balance</div>
+    <div class="balance-num zero" id="bal">$0</div>
+  </div>
+
+  <div class="controls">
+    <button class="quick-btn minus" onclick="adjust(-100)">−100</button>
+    <button class="quick-btn minus" onclick="adjust(-10)">−10</button>
+    <button class="quick-btn minus" onclick="adjust(-1)">−1</button>
+    <div class="input-wrap">
+      <input class="amount-input" type="number" id="amt" placeholder="0" step="any" />
+    </div>
+    <button class="quick-btn plus" onclick="adjust(1)">+1</button>
+    <button class="quick-btn plus" onclick="adjust(10)">+10</button>
+    <button class="quick-btn plus" onclick="adjust(100)">+100</button>
+  </div>
+
+  <div style="margin-top: 8px; display: flex; gap: 8px;">
+    <button class="add-btn" style="flex:1;" onclick="addCustom(-1)"><i class="ti ti-minus" aria-hidden="true"></i> subtract</button>
+    <button class="add-btn" style="flex:1; background:#1a2e1a; border-color:#2a442a;" onclick="addCustom(1)"><i class="ti ti-plus" aria-hidden="true"></i> add</button>
+  </div>
+
+  <div class="sparkline">
+    <canvas id="spark" height="48" style="width:100%;display:block;opacity:0.5;"></canvas>
+  </div>
+
+  <div class="history">
+    <div class="hist-header">
+      <span class="hist-title">transactions</span>
+      <button class="clear-btn" onclick="clearAll()">clear all</button>
+    </div>
+    <div class="entries" id="entries">
+      <div class="empty-state" id="empty">no transactions yet</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let balance = 0;
+let transactions = [];
+
+function fmt(n) {
+  const abs = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n < 0 ? '-' : '') + '$' + abs;
+}
+
+function updateDisplay() {
+  const el = document.getElementById('bal');
+  el.textContent = fmt(balance);
+  el.className = 'balance-num ' + (balance > 0 ? 'pos' : balance < 0 ? 'neg' : 'zero');
+  el.classList.add('bump');
+  setTimeout(() => el.classList.remove('bump'), 150);
+  drawSpark();
+}
+
+function addEntry(amount) {
+  const now = new Date();
+  const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  transactions.unshift({ amount, time, running: balance });
+  renderEntries();
+  updateDisplay();
+}
+
+function adjust(amount) {
+  balance = Math.round((balance + amount) * 100) / 100;
+  addEntry(amount);
+}
+
+function addCustom(sign) {
+  const raw = parseFloat(document.getElementById('amt').value);
+  if (isNaN(raw) || raw === 0) return;
+  const amount = Math.round(Math.abs(raw) * 100) / 100 * sign;
+  balance = Math.round((balance + amount) * 100) / 100;
+  document.getElementById('amt').value = '';
+  addEntry(amount);
+}
+
+function renderEntries() {
+  const container = document.getElementById('entries');
+  const empty = document.getElementById('empty');
+  if (transactions.length === 0) {
+    container.innerHTML = '<div class="empty-state" id="empty">no transactions yet</div>';
+    return;
+  }
+  container.innerHTML = transactions.slice(0, 50).map(t => `
+    <div class="entry">
+      <span class="entry-time">${t.time}</span>
+      <span class="entry-amount ${t.amount >= 0 ? 'pos' : 'neg'}">${t.amount >= 0 ? '+' : ''}${fmt(t.amount)}</span>
+    </div>
+  `).join('');
+}
+
+function clearAll() {
+  balance = 0;
+  transactions = [];
+  renderEntries();
+  updateDisplay();
+}
+
+function drawSpark() {
+  const canvas = document.getElementById('spark');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth * (window.devicePixelRatio || 1);
+  canvas.height = 48 * (window.devicePixelRatio || 1);
+  ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+  ctx.clearRect(0, 0, canvas.offsetWidth, 48);
+  if (transactions.length < 2) return;
+  const vals = [0, ...transactions.slice().reverse().map(t => t.running + t.amount)];
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = max - min || 1;
+  const w = canvas.offsetWidth, h = 48, pad = 4;
+  const pts = vals.map((v, i) => ({
+    x: pad + (i / (vals.length - 1)) * (w - pad * 2),
+    y: h - pad - ((v - min) / range) * (h - pad * 2)
+  }));
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.strokeStyle = balance >= 0 ? '#4ade80' : '#f87171';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.lineTo(pts[pts.length-1].x, h);
+  ctx.lineTo(pts[0].x, h);
+  ctx.closePath();
+  ctx.fillStyle = balance >= 0 ? 'rgba(74,222,128,0.08)' : 'rgba(248,113,113,0.08)';
+  ctx.fill();
+}
+
+document.getElementById('amt').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addCustom(1);
+});
+
+updateDisplay();
+</script>
