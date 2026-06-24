@@ -1,0 +1,280 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #141414; min-height: 100vh; padding: 1.5rem; }
+  .app { background: #141414; min-height: 100vh; color: #fff; max-width: 640px; margin: 0 auto; }
+  .balance-area { text-align: center; padding: 1.5rem 0 2rem; }
+  .balance-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #555; margin-bottom: 0.5rem; }
+  .balance-num { font-size: 68px; font-weight: 500; line-height: 1; transition: color 0.3s, transform 0.15s; font-variant-numeric: tabular-nums; }
+  .balance-num.pos { color: #4ade80; }
+  .balance-num.neg { color: #f87171; }
+  .balance-num.zero { color: #555; }
+  .balance-num.bump { transform: scale(1.05); }
+  .tabs { display: flex; gap: 6px; margin-bottom: 1.25rem; background: #1c1c1c; border-radius: 12px; padding: 4px; border: 0.5px solid #2a2a2a; }
+  .tab { flex: 1; padding: 8px 0; border-radius: 9px; border: none; background: transparent; color: #666; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s, color 0.15s; }
+  .tab.active { background: #2a2a2a; color: #fff; }
+  .tab:hover:not(.active) { color: #aaa; }
+  .controls { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .quick-btn { flex: 1; padding: 10px 0; border-radius: 10px; border: 0.5px solid #2a2a2a; background: #1c1c1c; color: #ccc; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s, color 0.15s, transform 0.1s; }
+  .quick-btn:active { transform: scale(0.95); }
+  .quick-btn.minus { color: #f87171; border-color: #3a2222; }
+  .quick-btn.minus:hover { background: #2a1a1a; }
+  .quick-btn.plus { color: #4ade80; border-color: #1a3a22; }
+  .quick-btn.plus:hover { background: #1a2a1a; }
+  .input-wrap { flex: 2; }
+  .amount-input { width: 100%; padding: 10px 14px; background: #1c1c1c; border: 0.5px solid #333; border-radius: 10px; color: #fff; font-size: 16px; text-align: center; outline: none; }
+  .amount-input:focus { border-color: #555; }
+  .amount-input::placeholder { color: #444; }
+  .action-row { display: flex; gap: 6px; margin-bottom: 1.25rem; }
+  .act-btn { flex: 1; padding: 10px 0; border-radius: 10px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s, transform 0.1s; border: 0.5px solid; }
+  .act-btn:active { transform: scale(0.96); }
+  .act-sub { background: #2d1e1e; border-color: #4a2a2a; color: #f87171; }
+  .act-sub:hover { background: #332424; }
+  .act-add { background: #1e2d1e; border-color: #2a4a2a; color: #4ade80; }
+  .act-add:hover { background: #243324; }
+  .act-day { background: #1e1e2d; border-color: #2a2a4a; color: #818cf8; }
+  .act-day:hover { background: #242433; }
+  .divider { height: 0.5px; background: #222; margin: 0.25rem 0 1.25rem; }
+  .section-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #444; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
+  .clear-btn { font-size: 11px; color: #444; background: none; border: none; cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+  .clear-btn:hover { color: #888; background: #222; }
+  .day-block { margin-bottom: 8px; }
+  .day-header { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; background: #1e1e2d; border-radius: 9px; border: 0.5px solid #2a2a3a; cursor: pointer; }
+  .day-header:hover { background: #24243a; }
+  .day-name { font-size: 12px; color: #818cf8; }
+  .day-total { font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .day-total.pos { color: #4ade80; }
+  .day-total.neg { color: #f87171; }
+  .day-total.zero { color: #555; }
+  .day-entries { display: none; flex-direction: column; gap: 4px; margin-top: 4px; padding-left: 8px; }
+  .day-entries.open { display: flex; }
+  .entry { display: flex; justify-content: space-between; padding: 7px 12px; background: #1a1a1a; border-radius: 8px; border: 0.5px solid #242424; animation: fi 0.2s ease; }
+  @keyframes fi { from { opacity:0; transform:translateY(-3px); } to { opacity:1; transform:translateY(0); } }
+  .entry-time { font-size: 11px; color: #444; }
+  .entry-amt { font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .entry-amt.pos { color: #4ade80; }
+  .entry-amt.neg { color: #f87171; }
+  .empty { text-align: center; padding: 2rem; color: #333; font-size: 13px; }
+  .chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 72px; margin-bottom: 1.25rem; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .bar-outer { width: 100%; height: 60px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 3px; transition: height 0.3s; }
+  .bar-lbl { font-size: 9px; color: #444; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.25rem; }
+  .stat-card { background: #1c1c1c; border-radius: 10px; border: 0.5px solid #2a2a2a; padding: 12px 14px; }
+  .stat-label { font-size: 11px; color: #555; margin-bottom: 4px; }
+  .stat-val { font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .stat-val.pos { color: #4ade80; }
+  .stat-val.neg { color: #f87171; }
+  .stat-val.zero { color: #666; }
+  .range-row { display: flex; gap: 8px; margin-bottom: 1rem; }
+  .date-input { flex: 1; padding: 8px 10px; background: #1c1c1c; border: 0.5px solid #333; border-radius: 9px; color: #ccc; font-size: 13px; outline: none; }
+  .date-input:focus { border-color: #555; }
+</style>
+
+<div class="app">
+  <div class="balance-area">
+    <div class="balance-label" id="view-label">today</div>
+    <div class="balance-num zero" id="bal">$0</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('today')">Today</button>
+    <button class="tab" onclick="switchTab('custom')">Custom range</button>
+    <button class="tab" onclick="switchTab('all')">All time</button>
+  </div>
+
+  <div id="input-section">
+    <div class="controls">
+      <button class="quick-btn minus" onclick="adjust(-100)">−100</button>
+      <button class="quick-btn minus" onclick="adjust(-10)">−10</button>
+      <button class="quick-btn minus" onclick="adjust(-1)">−1</button>
+      <div class="input-wrap"><input class="amount-input" type="number" id="amt" placeholder="0" step="any" /></div>
+      <button class="quick-btn plus" onclick="adjust(1)">+1</button>
+      <button class="quick-btn plus" onclick="adjust(10)">+10</button>
+      <button class="quick-btn plus" onclick="adjust(100)">+100</button>
+    </div>
+    <div class="action-row">
+      <button class="act-btn act-sub" onclick="addCustom(-1)">− subtract</button>
+      <button class="act-btn act-add" onclick="addCustom(1)">+ add</button>
+      <button class="act-btn act-day" onclick="closeDay()">close day</button>
+    </div>
+  </div>
+
+  <div id="range-section" style="display:none;">
+    <div class="range-row">
+      <input class="date-input" type="date" id="from-date" oninput="renderAll()" />
+      <input class="date-input" type="date" id="to-date" oninput="renderAll()" />
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div id="chart-wrap" style="display:none;"><div class="chart-bars" id="chart-bars"></div></div>
+  <div class="stat-grid" id="stat-grid"></div>
+  <div class="section-label"><span id="hist-label">history</span><button class="clear-btn" onclick="clearAll()">clear all</button></div>
+  <div id="entries"></div>
+</div>
+
+<script>
+const STORE_KEY = 'moneytracker_v3';
+let currentTab = 'today';
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || defaultState(); }
+  catch(e) { return defaultState(); }
+}
+function defaultState() { return { days: [], current: { date: dateStr(new Date()), transactions: [] } }; }
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e) {} }
+function dateStr(d) { return d.toISOString().split('T')[0]; }
+function todayStr() { return dateStr(new Date()); }
+function fmtDate(s) { return new Date(s+'T00:00:00').toLocaleDateString('nl-BE', { day:'2-digit', month:'short' }); }
+
+function fmt(n) {
+  const abs = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n < 0 ? '-' : '') + '$' + abs;
+}
+function cls(n) { return n > 0 ? 'pos' : n < 0 ? 'neg' : 'zero'; }
+function dayTotal(day) { return Math.round(day.transactions.reduce((s,t)=>s+t.amount,0)*100)/100; }
+
+let state = load();
+
+function allDaysList() {
+  const list = [];
+  if (state.current.transactions.length > 0) list.push({ date: state.current.date, transactions: state.current.transactions, isToday: true });
+  state.days.forEach(d => list.push({ ...d, isToday: false }));
+  return list;
+}
+
+function filteredDays() {
+  const all = allDaysList();
+  if (currentTab === 'today') return all.filter(d => d.date === todayStr());
+  if (currentTab === 'all') return all;
+  const from = document.getElementById('from-date')?.value;
+  const to = document.getElementById('to-date')?.value;
+  return all.filter(d => (!from || d.date >= from) && (!to || d.date <= to));
+}
+
+function totalOf(days) { return Math.round(days.reduce((s,d)=>s+dayTotal(d),0)*100)/100; }
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach((el,i) => el.classList.toggle('active', ['today','custom','all'][i] === tab));
+  document.getElementById('input-section').style.display = tab === 'today' ? '' : 'none';
+  document.getElementById('range-section').style.display = tab === 'custom' ? '' : 'none';
+  if (tab === 'custom') {
+    const today = todayStr();
+    document.getElementById('to-date').value = today;
+    const weekAgo = dateStr(new Date(Date.now() - 6*86400000));
+    document.getElementById('from-date').value = weekAgo;
+  }
+  renderAll();
+}
+
+function updateBalance() {
+  const days = filteredDays();
+  const total = totalOf(days);
+  const el = document.getElementById('bal');
+  el.textContent = fmt(total);
+  el.className = 'balance-num ' + cls(total);
+  el.classList.add('bump');
+  setTimeout(()=>el.classList.remove('bump'),150);
+  const labels = { today:'today', custom:'custom range', all:'all time' };
+  document.getElementById('view-label').textContent = labels[currentTab];
+}
+
+function adjust(amount) {
+  if (currentTab !== 'today') return;
+  const now = new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
+  state.current.transactions.unshift({ amount, time: now });
+  updateAll();
+}
+
+function addCustom(sign) {
+  if (currentTab !== 'today') return;
+  const raw = parseFloat(document.getElementById('amt').value);
+  if (isNaN(raw) || raw === 0) return;
+  const amount = Math.round(Math.abs(raw)*100)/100*sign;
+  document.getElementById('amt').value = '';
+  const now = new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
+  state.current.transactions.unshift({ amount, time: now });
+  updateAll();
+}
+
+function closeDay() {
+  if (state.current.transactions.length === 0) return;
+  state.days.unshift({ date: state.current.date, transactions: state.current.transactions });
+  state.current = { date: todayStr(), transactions: [] };
+  updateAll();
+}
+
+function clearAll() {
+  if (!confirm('Alles wissen?')) return;
+  state = defaultState();
+  updateAll();
+}
+
+function updateAll() { save(); renderAll(); }
+
+function renderAll() {
+  updateBalance();
+  renderStats();
+  renderChart();
+  renderEntries();
+}
+
+function renderStats() {
+  const days = filteredDays();
+  if (days.length === 0) { document.getElementById('stat-grid').innerHTML = ''; return; }
+  const totals = days.map(dayTotal);
+  const best = Math.max(...totals);
+  const worst = Math.min(...totals);
+  const avg = Math.round(totals.reduce((a,b)=>a+b,0)/totals.length*100)/100;
+  const txCount = days.reduce((s,d)=>s+d.transactions.length,0);
+  document.getElementById('stat-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-label">best day</div><div class="stat-val ${cls(best)}">${fmt(best)}</div></div>
+    <div class="stat-card"><div class="stat-label">worst day</div><div class="stat-val ${cls(worst)}">${fmt(worst)}</div></div>
+    <div class="stat-card"><div class="stat-label">avg / day</div><div class="stat-val ${cls(avg)}">${fmt(avg)}</div></div>
+    <div class="stat-card"><div class="stat-label">transactions</div><div class="stat-val zero">${txCount}</div></div>
+  `;
+}
+
+function renderChart() {
+  const days = filteredDays();
+  const wrap = document.getElementById('chart-wrap');
+  const visible = days.slice().reverse().slice(-10);
+  if (visible.length < 2) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  const totals = visible.map(dayTotal);
+  const maxAbs = Math.max(...totals.map(Math.abs), 1);
+  document.getElementById('chart-bars').innerHTML = visible.map(d => {
+    const t = dayTotal(d);
+    const pct = Math.round(Math.abs(t)/maxAbs*100);
+    const color = t >= 0 ? '#4ade80' : '#f87171';
+    const lbl = fmtDate(d.date);
+    return `<div class="bar-col"><div class="bar-outer"><div class="bar" style="height:${pct}%;background:${color};"></div></div><div class="bar-lbl">${lbl}</div></div>`;
+  }).join('');
+}
+
+function renderEntries() {
+  const days = filteredDays();
+  const container = document.getElementById('entries');
+  if (days.length === 0) { container.innerHTML = '<div class="empty">geen transacties</div>'; return; }
+  container.innerHTML = days.map(d => {
+    const t = dayTotal(d);
+    const isToday = d.date === todayStr();
+    const name = isToday ? `vandaag · ${fmtDate(d.date)}` : fmtDate(d.date);
+    return `<div class="day-block">
+      <div class="day-header" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="day-name">${name}</span>
+        <span class="day-total ${cls(t)}">${fmt(t)}</span>
+      </div>
+      <div class="day-entries ${isToday?'open':''}">
+        ${d.transactions.map(tx=>`<div class="entry"><span class="entry-time">${tx.time}</span><span class="entry-amt ${cls(tx.amount)}">${tx.amount>=0?'+':''}${fmt(tx.amount)}</span></div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('amt')?.addEventListener('keydown', e => { if(e.key==='Enter') addCustom(1); });
+renderAll();
+</script>
