@@ -1,0 +1,487 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #141414; min-height: 100vh; padding: 1.5rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .app { background: #141414; min-height: 100vh; color: #fff; max-width: 640px; margin: 0 auto; }
+  .balance-area { text-align: center; padding: 1.5rem 0 1.75rem; }
+  .balance-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #555; margin-bottom: 0.5rem; }
+  .balance-num { font-size: 68px; font-weight: 500; line-height: 1; transition: color 0.3s, transform 0.15s; font-variant-numeric: tabular-nums; }
+  .balance-num.pos { color: #4ade80; }
+  .balance-num.neg { color: #f87171; }
+  .balance-num.zero { color: #555; }
+  .balance-num.bump { transform: scale(1.05); }
+  .save-ind { font-size: 11px; color: #333; text-align: center; margin-top: 4px; min-height: 16px; }
+  .save-ind.saving { color: #818cf8; }
+  .save-ind.saved { color: #4ade80; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 1.25rem; background: #1c1c1c; border-radius: 12px; padding: 4px; border: 0.5px solid #2a2a2a; }
+  .tab { flex: 1; padding: 8px 0; border-radius: 9px; border: none; background: transparent; color: #666; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s, color 0.15s; }
+  .tab.active { background: #2a2a2a; color: #fff; }
+  .tab:hover:not(.active) { color: #aaa; }
+  .btn-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .quick-btn { flex: 1; padding: 10px 0; border-radius: 10px; border: 0.5px solid #2a2a2a; background: #1c1c1c; color: #ccc; font-size: 12px; font-weight: 500; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background 0.15s, transform 0.1s; }
+  .quick-btn:active { transform: scale(0.95); }
+  .quick-btn.minus { color: #f87171; border-color: #3a2222; }
+  .quick-btn.minus:hover { background: #2a1a1a; }
+  .quick-btn.plus { color: #4ade80; border-color: #1a3a22; }
+  .quick-btn.plus:hover { background: #1a2a1a; }
+  .center-row { display: flex; gap: 6px; margin-bottom: 6px; }
+  .amount-input { flex: 1; padding: 10px 14px; background: #1c1c1c; border: 0.5px solid #333; border-radius: 10px; color: #fff; font-size: 16px; text-align: center; outline: none; }
+  .amount-input:focus { border-color: #555; }
+  .amount-input::placeholder { color: #444; }
+  .action-row { display: flex; gap: 6px; margin-bottom: 1.25rem; margin-top: 2px; }
+  .act-btn { flex: 1; padding: 10px 0; border-radius: 10px; font-size: 13px; font-weight: 500; cursor: pointer; border: 0.5px solid; transition: background 0.15s, transform 0.1s; }
+  .act-btn:active { transform: scale(0.96); }
+  .act-sub { background: #2d1e1e; border-color: #4a2a2a; color: #f87171; }
+  .act-sub:hover { background: #332424; }
+  .act-add { background: #1e2d1e; border-color: #2a4a2a; color: #4ade80; }
+  .act-add:hover { background: #243324; }
+  .act-day { background: #1e1e2d; border-color: #2a2a4a; color: #818cf8; }
+  .act-day:hover { background: #242433; }
+  .act-icon { flex: 0 0 44px; background: #1c1c1c; border-color: #2a2a2a; color: #666; font-size: 16px; }
+  .act-icon:hover { background: #242424; color: #aaa; }
+  .divider { height: 0.5px; background: #222; margin: 0.25rem 0 1.25rem; }
+  .section-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #444; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
+  .clear-btn { font-size: 11px; color: #444; background: none; border: none; cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+  .clear-btn:hover { color: #888; background: #222; }
+  .day-block { margin-bottom: 8px; }
+  .day-header { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; background: #1e1e2d; border-radius: 9px; border: 0.5px solid #2a2a3a; cursor: pointer; gap: 8px; }
+  .day-header:hover { background: #24243a; }
+  .day-name { font-size: 12px; color: #818cf8; flex: 1; }
+  .day-total { font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .day-total.pos { color: #4ade80; }
+  .day-total.neg { color: #f87171; }
+  .day-total.zero { color: #555; }
+  .day-add-btn { font-size: 15px; color: #444; background: none; border: none; cursor: pointer; padding: 0 3px; line-height: 1; flex-shrink: 0; }
+  .day-add-btn:hover { color: #818cf8; }
+  .day-entries { display: none; flex-direction: column; gap: 4px; margin-top: 4px; padding-left: 8px; }
+  .day-entries.open { display: flex; }
+  .entry { display: flex; justify-content: space-between; padding: 7px 12px; background: #1a1a1a; border-radius: 8px; border: 0.5px solid #242424; }
+  .entry-time { font-size: 11px; color: #444; }
+  .entry-amt { font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .entry-amt.pos { color: #4ade80; }
+  .entry-amt.neg { color: #f87171; }
+  .empty { text-align: center; padding: 2rem; color: #333; font-size: 13px; }
+  .chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 72px; margin-bottom: 1.25rem; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .bar-outer { width: 100%; height: 60px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 3px; }
+  .bar-lbl { font-size: 9px; color: #444; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.25rem; }
+  .stat-card { background: #1c1c1c; border-radius: 10px; border: 0.5px solid #2a2a2a; padding: 12px 14px; }
+  .stat-lbl { font-size: 11px; color: #555; margin-bottom: 4px; }
+  .stat-val { font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .stat-val.pos { color: #4ade80; }
+  .stat-val.neg { color: #f87171; }
+  .stat-val.zero { color: #666; }
+  .range-row { display: flex; gap: 8px; margin-bottom: 1rem; }
+  .date-input { flex: 1; padding: 8px 10px; background: #1c1c1c; border: 0.5px solid #333; border-radius: 9px; color: #ccc; font-size: 13px; outline: none; }
+  .date-input:focus { border-color: #555; }
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; padding: 1.5rem; z-index: 10; }
+  .modal { background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 16px; padding: 1.25rem; width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto; }
+  .modal-title { font-size: 14px; font-weight: 500; margin-bottom: 1rem; color: #ccc; display: flex; justify-content: space-between; align-items: center; }
+  .modal-close { background: none; border: none; color: #555; font-size: 22px; cursor: pointer; line-height: 1; }
+  .modal-close:hover { color: #ccc; }
+  .modal-section { margin-bottom: 1rem; }
+  .modal-section-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; color: #555; }
+  .modal-section-label.minus { color: #f87171; }
+  .modal-section-label.plus { color: #4ade80; }
+  .field-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .field-input { flex: 1; padding: 8px 10px; background: #111; border: 0.5px solid #333; border-radius: 8px; color: #fff; font-size: 13px; outline: none; }
+  .field-input:focus { border-color: #555; }
+  .field-del { background: none; border: none; color: #444; font-size: 20px; cursor: pointer; padding: 0 4px; line-height: 1; }
+  .field-del:hover { color: #f87171; }
+  .add-row-btn { padding: 7px 12px; background: #222; border: 0.5px solid #333; border-radius: 8px; color: #666; font-size: 12px; cursor: pointer; width: 100%; margin-top: 2px; }
+  .add-row-btn:hover { background: #2a2a2a; color: #aaa; }
+  .modal-save-btn { width: 100%; padding: 10px; background: #1e2d1e; border: 0.5px solid #2a4a2a; border-radius: 10px; color: #4ade80; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 12px; }
+  .modal-save-btn:hover { background: #243324; }
+  .past-form { display: flex; flex-direction: column; gap: 10px; }
+  .sign-row { display: flex; gap: 6px; }
+  .sign-btn { flex: 1; padding: 9px 0; border-radius: 9px; border: 0.5px solid #2a2a2a; background: #1c1c1c; color: #666; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .sign-btn.ap { background: #1e2d1e; border-color: #2a4a2a; color: #4ade80; }
+  .sign-btn.am { background: #2d1e1e; border-color: #4a2a2a; color: #f87171; }
+  .add-past-strip { margin-bottom: 10px; }
+  .add-past-strip button { width: 100%; padding: 9px; background: #1e1e2d; border: 0.5px solid #2a2a4a; border-radius: 9px; color: #818cf8; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .add-past-strip button:hover { background: #242433; }
+</style>
+
+<div class="app">
+  <div class="balance-area">
+    <div class="balance-label" id="view-label">today</div>
+    <div class="balance-num zero" id="bal">$0</div>
+    <div class="save-ind" id="save-ind"></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('today')">Today</button>
+    <button class="tab" onclick="switchTab('custom')">Custom range</button>
+    <button class="tab" onclick="switchTab('all')">All time</button>
+  </div>
+  <div id="input-section">
+    <div class="btn-row" id="plus-row"></div>
+    <div class="center-row"><input class="amount-input" type="number" id="amt" placeholder="0" step="any" /></div>
+    <div class="btn-row" id="minus-row"></div>
+    <div class="action-row">
+      <button class="act-btn act-add" onclick="addCustom(1)">+ add</button>
+      <button class="act-btn act-sub" onclick="addCustom(-1)">− subtract</button>
+      <button class="act-btn act-day" onclick="closeDay()">close day</button>
+      <button class="act-btn act-icon" onclick="openEditor()">⚙</button>
+    </div>
+  </div>
+  <div id="range-section" style="display:none;">
+    <div class="range-row">
+      <input class="date-input" type="date" id="from-date" oninput="renderAll()" />
+      <input class="date-input" type="date" id="to-date" oninput="renderAll()" />
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div id="chart-wrap" style="display:none;"><div class="chart-bars" id="chart-bars"></div></div>
+  <div class="stat-grid" id="stat-grid"></div>
+  <div class="section-label"><span>history</span><button class="clear-btn" onclick="clearAll()">clear all</button></div>
+  <div id="entries"></div>
+</div>
+
+<!-- add to day / new day modal (shared) -->
+<div class="overlay" id="past-overlay" style="display:none;" onclick="if(event.target===this)closePast()">
+  <div class="modal">
+    <div class="modal-title"><span id="past-title">Toevoegen</span><button class="modal-close" onclick="closePast()">×</button></div>
+    <div class="past-form">
+      <div id="past-date-wrap" style="display:none;">
+        <input class="field-input" type="date" id="past-date" style="font-size:14px;padding:10px 12px;width:100%;" />
+      </div>
+      <div class="sign-row">
+        <button class="sign-btn ap" id="sign-plus" onclick="setPastSign(1)">+ toevoegen</button>
+        <button class="sign-btn" id="sign-minus" onclick="setPastSign(-1)">− aftrekken</button>
+      </div>
+      <input class="field-input" type="number" id="past-amt" placeholder="bedrag" step="any" style="font-size:16px;padding:12px 14px;text-align:center;" />
+      <button class="modal-save-btn" onclick="submitPast()">opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- preset editor -->
+<div class="overlay" id="editor-overlay" style="display:none;" onclick="if(event.target===this)closeEditor()">
+  <div class="modal">
+    <div class="modal-title"><span>Edit quick buttons</span><button class="modal-close" onclick="closeEditor()">×</button></div>
+    <div class="modal-section">
+      <div class="modal-section-label plus">add buttons (groen)</div>
+      <div id="plus-editor"></div>
+      <button class="add-row-btn" onclick="addPresetRow('plus')">+ toevoegen</button>
+    </div>
+    <div class="modal-section" style="margin-top:1rem;">
+      <div class="modal-section-label minus">subtract buttons (rood)</div>
+      <div id="minus-editor"></div>
+      <button class="add-row-btn" onclick="addPresetRow('minus')">+ toevoegen</button>
+    </div>
+    <button class="modal-save-btn" onclick="savePresets()">opslaan</button>
+  </div>
+</div>
+
+<script>
+const SKEY = 'moneytracker_v8';
+const DEFAULT_PLUS  = [{label:'+1',value:1},{label:'+10',value:10},{label:'+100',value:100}];
+const DEFAULT_MINUS = [{label:'−1',value:1},{label:'−10',value:10},{label:'−100',value:100}];
+
+let state = null;
+let currentTab = 'today';
+let pastMode = null; // 'existing' | 'new'
+let pastTargetDate = null; // date string for existing day
+let pastSign = 1;
+let saveTimer = null;
+
+function lsSave() { try { localStorage.setItem(SKEY, JSON.stringify(state)); } catch(e){} }
+function lsLoad() { try { return JSON.parse(localStorage.getItem(SKEY)); } catch(e){ return null; } }
+
+function setSaveInd(c, t) {
+  const el = document.getElementById('save-ind');
+  el.className = 'save-ind'+(c?' '+c:'');
+  el.textContent = t;
+}
+
+function scheduleSave() {
+  lsSave();
+  setSaveInd('saving','opslaan...');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async ()=>{
+    try {
+      await window.storage.set(SKEY, JSON.stringify(state));
+      setSaveInd('saved','✓ opgeslagen');
+      setTimeout(()=>setSaveInd('',''), 2000);
+    } catch(e) { setSaveInd('',''); }
+  }, 800);
+}
+
+function defaultState() {
+  return { days:[], current:{ date:todayStr(), transactions:[] }, presetsPlus:[...DEFAULT_PLUS], presetsMinus:[...DEFAULT_MINUS] };
+}
+
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function dateStr(d) { return d.toISOString().split('T')[0]; }
+function fmtDate(s) { return new Date(s+'T00:00:00').toLocaleDateString('nl-BE',{day:'2-digit',month:'short',year:'numeric'}); }
+function fmtShort(s) { return new Date(s+'T00:00:00').toLocaleDateString('nl-BE',{day:'2-digit',month:'short'}); }
+function fmt(n) { return (n<0?'-':'')+'$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function cls(n) { return n>0?'pos':n<0?'neg':'zero'; }
+function dayTotal(d) { return Math.round(d.transactions.reduce((s,t)=>s+t.amount,0)*100)/100; }
+function nowTime() { return new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}); }
+
+function renderQuickBtns() {
+  document.getElementById('plus-row').innerHTML = state.presetsPlus.map(p=>
+    `<button class="quick-btn plus" onclick="adjust(${p.value})">${p.label}</button>`).join('');
+  document.getElementById('minus-row').innerHTML = state.presetsMinus.map(p=>
+    `<button class="quick-btn minus" onclick="adjust(-${p.value})">${p.label}</button>`).join('');
+}
+
+// ── flat list of ALL days, sorted newest first ────────────────────────────────
+function allDays() {
+  // merge current + closed days into one flat sorted array
+  const map = {};
+  // closed days
+  state.days.forEach(d => { map[d.date] = { date:d.date, transactions:[...d.transactions] }; });
+  // current (open) day
+  if (state.current.transactions.length > 0 || state.current.date === todayStr()) {
+    if (map[state.current.date]) {
+      // shouldn't happen normally, but merge just in case
+      map[state.current.date].transactions = [...state.current.transactions, ...map[state.current.date].transactions];
+    } else {
+      map[state.current.date] = { date:state.current.date, transactions:[...state.current.transactions], isCurrent:true };
+    }
+  }
+  return Object.values(map).sort((a,b)=>b.date.localeCompare(a.date));
+}
+
+function filteredDays() {
+  const all = allDays();
+  if (currentTab==='today') return all.filter(d=>d.date===todayStr());
+  if (currentTab==='all') return all;
+  const from=document.getElementById('from-date')?.value, to=document.getElementById('to-date')?.value;
+  return all.filter(d=>(!from||d.date>=from)&&(!to||d.date<=to));
+}
+
+function totalOf(days) { return Math.round(days.reduce((s,d)=>s+dayTotal(d),0)*100)/100; }
+
+// ── write a transaction to the correct bucket ─────────────────────────────────
+function writeTransaction(date, amount) {
+  const entry = { amount, time: nowTime() + (date !== todayStr() ? '*' : '') };
+  if (date === state.current.date) {
+    state.current.transactions.unshift(entry);
+  } else {
+    const existing = state.days.find(d=>d.date===date);
+    if (existing) {
+      existing.transactions.unshift(entry);
+    } else {
+      state.days.push({ date, transactions:[entry] });
+      state.days.sort((a,b)=>b.date.localeCompare(a.date));
+    }
+  }
+}
+
+function adjust(amount) {
+  writeTransaction(todayStr(), amount);
+  updateAll();
+}
+
+function addCustom(sign) {
+  const raw = parseFloat(document.getElementById('amt').value);
+  if (isNaN(raw)||raw===0) return;
+  document.getElementById('amt').value = '';
+  writeTransaction(todayStr(), Math.round(Math.abs(raw)*100)/100*sign);
+  updateAll();
+}
+
+function closeDay() {
+  if (state.current.transactions.length===0) return;
+  state.days.unshift({ date:state.current.date, transactions:state.current.transactions });
+  state.current = { date:todayStr(), transactions:[] };
+  updateAll();
+}
+
+function clearAll() {
+  if (!confirm('Alles wissen?')) return;
+  state = defaultState();
+  renderQuickBtns();
+  updateAll();
+}
+
+function updateAll() { scheduleSave(); renderAll(); }
+
+// ── past modal (reused for both "add to existing" and "add new day") ──────────
+function openPastForDate(date, label) {
+  pastMode = 'existing';
+  pastTargetDate = date;
+  pastSign = 1;
+  document.getElementById('past-title').textContent = label;
+  document.getElementById('past-date-wrap').style.display = 'none';
+  document.getElementById('past-amt').value = '';
+  document.getElementById('sign-plus').className='sign-btn ap';
+  document.getElementById('sign-minus').className='sign-btn';
+  document.getElementById('past-overlay').style.display='flex';
+  setTimeout(()=>document.getElementById('past-amt').focus(),100);
+}
+
+function openNewDay() {
+  pastMode = 'new';
+  pastSign = 1;
+  document.getElementById('past-title').textContent = 'Nieuwe dag toevoegen';
+  document.getElementById('past-date-wrap').style.display = 'block';
+  document.getElementById('past-date').value = dateStr(new Date(Date.now()-86400000));
+  document.getElementById('past-amt').value = '';
+  document.getElementById('sign-plus').className='sign-btn ap';
+  document.getElementById('sign-minus').className='sign-btn';
+  document.getElementById('past-overlay').style.display='flex';
+  setTimeout(()=>document.getElementById('past-amt').focus(),100);
+}
+
+function closePast() { document.getElementById('past-overlay').style.display='none'; }
+
+function setPastSign(s) {
+  pastSign=s;
+  document.getElementById('sign-plus').className='sign-btn'+(s===1?' ap':'');
+  document.getElementById('sign-minus').className='sign-btn'+(s===-1?' am':'');
+}
+
+function submitPast() {
+  const raw = parseFloat(document.getElementById('past-amt').value);
+  if (isNaN(raw)||raw===0) return;
+  const amount = Math.round(Math.abs(raw)*100)/100*pastSign;
+
+  let date;
+  if (pastMode==='new') {
+    date = document.getElementById('past-date').value;
+    if (!date) return;
+  } else {
+    date = pastTargetDate;
+  }
+
+  writeTransaction(date, amount);
+
+  // switch to 'all' tab so user sees the result
+  closePast();
+  if (currentTab==='today' && date!==todayStr()) {
+    switchTab('all');
+  } else {
+    updateAll();
+  }
+}
+
+function switchTab(tab) {
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['today','custom','all'][i]===tab));
+  document.getElementById('input-section').style.display=tab==='today'?'':'none';
+  document.getElementById('range-section').style.display=tab==='custom'?'':'none';
+  if (tab==='custom') {
+    document.getElementById('to-date').value=todayStr();
+    document.getElementById('from-date').value=dateStr(new Date(Date.now()-6*86400000));
+  }
+  updateAll();
+}
+
+function renderAll() { updateBalance(); renderStats(); renderChart(); renderEntries(); }
+
+function updateBalance() {
+  const total=totalOf(filteredDays());
+  const el=document.getElementById('bal');
+  el.textContent=fmt(total);
+  el.className='balance-num '+cls(total);
+  el.classList.add('bump');
+  setTimeout(()=>el.classList.remove('bump'),150);
+  document.getElementById('view-label').textContent={today:'today',custom:'custom range',all:'all time'}[currentTab];
+}
+
+function renderStats() {
+  const days=filteredDays().filter(d=>d.transactions.length>0);
+  if (!days.length){document.getElementById('stat-grid').innerHTML='';return;}
+  const totals=days.map(dayTotal);
+  const best=Math.max(...totals),worst=Math.min(...totals);
+  const avg=Math.round(totals.reduce((a,b)=>a+b,0)/totals.length*100)/100;
+  const txCount=days.reduce((s,d)=>s+d.transactions.length,0);
+  document.getElementById('stat-grid').innerHTML=`
+    <div class="stat-card"><div class="stat-lbl">best day</div><div class="stat-val ${cls(best)}">${fmt(best)}</div></div>
+    <div class="stat-card"><div class="stat-lbl">worst day</div><div class="stat-val ${cls(worst)}">${fmt(worst)}</div></div>
+    <div class="stat-card"><div class="stat-lbl">avg / day</div><div class="stat-val ${cls(avg)}">${fmt(avg)}</div></div>
+    <div class="stat-card"><div class="stat-lbl">transactions</div><div class="stat-val zero">${txCount}</div></div>`;
+}
+
+function renderChart() {
+  const days=filteredDays().filter(d=>d.transactions.length>0);
+  const wrap=document.getElementById('chart-wrap');
+  const visible=days.slice().reverse().slice(-10);
+  if (visible.length<2){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  const maxAbs=Math.max(...visible.map(d=>Math.abs(dayTotal(d))),1);
+  document.getElementById('chart-bars').innerHTML=visible.map(d=>{
+    const t=dayTotal(d),pct=Math.round(Math.abs(t)/maxAbs*100);
+    return `<div class="bar-col"><div class="bar-outer"><div class="bar" style="height:${pct}%;background:${t>=0?'#4ade80':'#f87171'};"></div></div><div class="bar-lbl">${fmtShort(d.date)}</div></div>`;
+  }).join('');
+}
+
+function renderEntries() {
+  const days=filteredDays();
+  const container=document.getElementById('entries');
+
+  const addStrip=`<div class="add-past-strip"><button onclick="openNewDay()">＋ dag toevoegen</button></div>`;
+
+  if (!days.length){container.innerHTML=addStrip+'<div class="empty">geen transacties</div>';return;}
+
+  const blocks=days.map(d=>{
+    const t=dayTotal(d);
+    const isToday=d.date===todayStr();
+    const label=isToday?`vandaag · ${fmtShort(d.date)}`:fmtDate(d.date);
+    const safeLabel=label.replace(/'/g,"\\'");
+    const txHtml=d.transactions.length
+      ? d.transactions.map(tx=>`<div class="entry"><span class="entry-time">${tx.time}</span><span class="entry-amt ${cls(tx.amount)}">${tx.amount>=0?'+':''}${fmt(tx.amount)}</span></div>`).join('')
+      : '';
+    return `<div class="day-block">
+      <div class="day-header" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="day-name">${label}</span>
+        <button class="day-add-btn" title="Toevoegen" onclick="event.stopPropagation();openPastForDate('${d.date}','${safeLabel}')">＋</button>
+        <span class="day-total ${cls(t)}">${fmt(t)}</span>
+      </div>
+      <div class="day-entries ${isToday?'open':''}">
+        ${txHtml}
+      </div>
+    </div>`;
+  }).join('');
+
+  container.innerHTML=addStrip+blocks;
+}
+
+function openEditor(){renderEditorRows('plus');renderEditorRows('minus');document.getElementById('editor-overlay').style.display='flex';}
+function closeEditor(){document.getElementById('editor-overlay').style.display='none';}
+function renderEditorRows(type){
+  const p=type==='plus'?state.presetsPlus:state.presetsMinus;
+  document.getElementById(type+'-editor').innerHTML=p.map((x,i)=>`
+    <div class="field-row">
+      <input class="field-input" placeholder="label" value="${x.label||''}" id="${type}-lbl-${i}" />
+      <input class="field-input" type="number" placeholder="bedrag" value="${x.value||''}" min="0" step="any" id="${type}-val-${i}" style="text-align:right;" />
+      <button class="field-del" onclick="deletePresetRow('${type}',${i})">×</button>
+    </div>`).join('');
+}
+function addPresetRow(type){(type==='plus'?state.presetsPlus:state.presetsMinus).push({label:'',value:0});renderEditorRows(type);}
+function deletePresetRow(type,i){(type==='plus'?state.presetsPlus:state.presetsMinus).splice(i,1);renderEditorRows(type);}
+function savePresets(){
+  ['plus','minus'].forEach(type=>{
+    const n=document.querySelectorAll(`#${type}-editor .field-row`).length;
+    const r=[];
+    for(let i=0;i<n;i++){
+      const l=document.getElementById(`${type}-lbl-${i}`)?.value.trim();
+      const v=parseFloat(document.getElementById(`${type}-val-${i}`)?.value);
+      if(!isNaN(v)&&v>0) r.push({label:l||(type==='plus'?'+':'-')+v,value:v});
+    }
+    if(type==='plus') state.presetsPlus=r.length?r:[...DEFAULT_PLUS];
+    else state.presetsMinus=r.length?r:[...DEFAULT_MINUS];
+  });
+  closeEditor();renderQuickBtns();updateAll();
+}
+
+async function boot() {
+  let loaded=null;
+  try { const r=await window.storage.get(SKEY); if(r?.value) loaded=JSON.parse(r.value); } catch(e){}
+  if (!loaded) loaded=lsLoad();
+  state=loaded||defaultState();
+  if (!state.presetsPlus) state.presetsPlus=[...DEFAULT_PLUS];
+  if (!state.presetsMinus) state.presetsMinus=[...DEFAULT_MINUS];
+  renderQuickBtns();
+  renderAll();
+  document.getElementById('amt').addEventListener('keydown',e=>{if(e.key==='Enter')addCustom(1);});
+  document.getElementById('past-amt').addEventListener('keydown',e=>{if(e.key==='Enter')submitPast();});
+}
+boot();
+</script>
